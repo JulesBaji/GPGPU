@@ -1,0 +1,163 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "extern",
+					"childIndexes" : 
+					[
+						2
+					],
+					"jsonFile" : "directory-extern-Debug-d9e4f83ac47f6c6be250.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "extern"
+				},
+				{
+					"build" : "extern/SDL2",
+					"jsonFile" : "directory-extern.SDL2-Debug-7e1ee83b9fe6d7799285.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0.0"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "extern/SDL2",
+					"targetIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5,
+						6
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "MandelbrotRenderer",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "SDL2",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5,
+						6
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "MandelbrotRenderer::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-MandelbrotRenderer-Debug-03130addf775e96c8bc0.json",
+					"name" : "MandelbrotRenderer",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "SDL2::@9715d248500643b8b51b",
+					"jsonFile" : "target-SDL2-Debug-8d090ba7cea6b5a9e706.json",
+					"name" : "SDL2",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "SDL2-static::@9715d248500643b8b51b",
+					"jsonFile" : "target-SDL2-static-Debug-41d9b12d025bb58e16ea.json",
+					"name" : "SDL2-static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "SDL2_test::@9715d248500643b8b51b",
+					"jsonFile" : "target-SDL2_test-Debug-d7537481086630e48362.json",
+					"name" : "SDL2_test",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "SDL2main::@9715d248500643b8b51b",
+					"jsonFile" : "target-SDL2main-Debug-dee9cdbd90cf6579088b.json",
+					"name" : "SDL2main",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "sdl_headers_copy::@9715d248500643b8b51b",
+					"jsonFile" : "target-sdl_headers_copy-Debug-764c5ecda9b9585c7709.json",
+					"name" : "sdl_headers_copy",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "uninstall::@9715d248500643b8b51b",
+					"jsonFile" : "target-uninstall-Debug-94714b4a110405f019f1.json",
+					"name" : "uninstall",
+					"projectIndex" : 1
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/etudiants/baji2/Bureau/GPGPU/build",
+		"source" : "/home/etudiants/baji2/Bureau/GPGPU/TP1"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

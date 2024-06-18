@@ -1,0 +1,13 @@
+/home/etudiants/baji2/Bureau/GPGPU/build/CMakeFiles/MandelbrotRenderer.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/CMakeFiles/edit_cache.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/CMakeFiles/rebuild_cache.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/CMakeFiles/edit_cache.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/CMakeFiles/rebuild_cache.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/SDL2/CMakeFiles/sdl_headers_copy.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/SDL2/CMakeFiles/SDL2main.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/SDL2/CMakeFiles/SDL2.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/SDL2/CMakeFiles/SDL2-static.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/SDL2/CMakeFiles/SDL2_test.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/SDL2/CMakeFiles/uninstall.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/SDL2/CMakeFiles/edit_cache.dir
+/home/etudiants/baji2/Bureau/GPGPU/build/extern/SDL2/CMakeFiles/rebuild_cache.dir
