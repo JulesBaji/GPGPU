@@ -1,67 +1,47 @@
-#include "naive_viewtestGPU.hpp"
-#define BLOCK_SIZE 256
+#include "optimisedGPU.hpp"
+#define BLOCK_SIZE 16
 #define N 1024
 
 __global__ void kernelNaive_viewtest( const uint8_t *const dev_hmPtr, uint8_t *const dev_resultatsGPUPtr, const int size, const int width, const int height, 
-	const int positionC) 
-{		
-	// Coordonnées du point donné
-	const int xa = positionC%width;
-	const int ya = positionC/width;
-	// int et pas uint8_t : la différence de 2 hauteurs (zb - za) peut-être négative
-	const int hC = dev_hmPtr[positionC];
+	const int xc, const int yc) 
+{
+	const int c = xc + yc * width;
+	const int zc = dev_hmPtr[c];
 
-	for(int x = threadIdx.x + blockDim.x * blockIdx.x; x < size; x+= blockDim.x * gridDim.x) 
+	int tid_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int tid_y = threadIdx.y + blockIdx.y * blockDim.y;
+
+	// angle(c,p)
+	const int zp = dev_hmPtr[tid_x + tid_y * width];
+	const float angle_cp = atan2f(zp - zc, sqrtf((tid_x - xc)*(tid_x - xc) + (tid_y - yc)*(tid_y - yc)));
+
+	// DDA
+	float x = xc, y = yc;
+	const int dx = tid_x - xc, dy = tid_y - yc;
+	const int D = max(abs(dx), abs(dy));
+	const float incx = (float)dx / D;
+    const float incy = (float)dy / D;
+
+	// Tracé ( On evite le premier et dernier point)
+	bool visible = true;
+	for(int i = 0; i < D - 1; i++)
 	{
-		// Si le point courant est différent du point donné
-		if( x != positionC )
+		x += incx;
+		y += incy;
+
+		// angle(c,p(i,j))
+		const int p_ij = int(x) + int(y) * width;
+		const int zp_ij = dev_hmPtr[p_ij];
+		const float angle_cpij = atan2f(zp_ij - zc, sqrtf((x - xc)*(x - xc) + (y - yc)*(y - yc)));
+		
+		// Vérification angle(c,p) < angle(c,p(i,j))
+		if ( angle_cp < angle_cpij )
 		{
-			bool visible = true;
-
-			// Coordonnées du point courant
-			const int xb = x%width;
-			const int yb = x/width;
-			
-			const int hPCourant = dev_hmPtr[x];
-			// angle(c,p)
-			const float angleCPCourant = atan2f(hPCourant - hC, sqrtf(float((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya))));
-
-			// DDA
-			float xDDA = xa, yDDA = ya;
-			const int dx = xb - xa, dy = yb - ya;
-			const int D = (abs(dx) > abs(dy)) ? abs(dx) : abs(dy);
-			const float incx = static_cast<float>(dx) / static_cast<float>(D);
-			const float incy = static_cast<float>(dy) / static_cast<float>(D);
-
-			// Tracage ( On evite le premier et dernier point)
-			for(int i = 0; i < D - 1; i++)
-			{
-				xDDA += incx;
-				yDDA += incy;
-
-				// angle(c,p(i,j))
-				const int xRast = xDDA;
-				const int yRast = yDDA;
-				const int hPRast = dev_hmPtr[xRast + yRast * width ];
-				const float angleCPRast = atan2f(hPRast - hC, sqrtf(float((xRast - xa)*(xRast - xa) + (yRast - ya)*(yRast - ya))));
-
-				// Vérification angle(c,p) < angle(c,p(i,j))
-				if ( angleCPRast >= angleCPCourant )
-				{
-					visible = false;
-					break;
-				}
-			}
-			
-			if(visible == true) 
-			{
-				// Inversion de l'axe des y pour une comparaison plus exacte : l'axe des ordonnées de 1.input.ppm est inversé
-				int x2D = x%width;
-				int inversionY2D = height - 1 - x/width;
-				dev_resultatsGPUPtr[x2D + inversionY2D * width] = 255u;
-			}	
+			visible = false;
+			break;
 		}
 	}
+	if (visible) dev_resultatsGPUPtr[tid_x + tid_y*width] = 255u;
 }
 
 float naive_viewtestGPU(los::Heightmap &hm, const Point &c, los::Heightmap &resultatsGPU )
@@ -76,21 +56,19 @@ float naive_viewtestGPU(los::Heightmap &hm, const Point &c, los::Heightmap &resu
 	const uint32_t width = hm.getWidth();
 	const uint32_t height = hm.getHeight();
 
-	const int positionC = c.x + c.y * width;
-
 	HANDLE_ERROR(cudaMalloc(&dev_hmPtr, hm.getSize() * sizeof(uint8_t)));
 	HANDLE_ERROR(cudaMalloc(&dev_resultatsGPUPtr, resultatsGPU.getSize() * sizeof(uint8_t)));
 
 	HANDLE_ERROR (cudaMemcpy( dev_hmPtr, hmPtr, hm.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 	HANDLE_ERROR (cudaMemcpy( dev_resultatsGPUPtr, resultatsGPUPtr, resultatsGPU.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 
-	dim3 blockSize(BLOCK_SIZE); 
-    dim3 gridSize((size + blockSize.x - 1) / blockSize.x);
+	dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE); 
+    dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
 
 	ChronoGPU chr;
 	chr.start();
 
-	kernelNaive_viewtest<<<gridSize, blockSize>>>(dev_hmPtr, dev_resultatsGPUPtr, size, width, height, positionC);
+	kernelNaive_viewtest<<<gridSize, blockSize>>>(dev_hmPtr, dev_resultatsGPUPtr, size, width, height, c.x, c.y);
 
 	HANDLE_ERROR (cudaMemcpy( resultatsGPUPtr, dev_resultatsGPUPtr, resultatsGPU.getSize() * sizeof(uint8_t), cudaMemcpyDeviceToHost ));
 

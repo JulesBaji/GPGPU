@@ -15,14 +15,14 @@ __global__ void kernelOptimised_viewtest( const uint8_t *const dev_hmPtr, uint8_
 		// DDA
 		float x = xc, y = yc;
 		const int dx = tid_x - xc, dy = tid_y - yc;
-		const int D = (abs(dx) > abs(dy)) ? abs(dx) : abs(dy);
+		const int D = max(abs(dx), abs(dy));
 		const float inxc = static_cast<float>(dx) / static_cast<float>(D);
 		const float incy = static_cast<float>(dy) / static_cast<float>(D);
 
 		// Initialisation de l'angle précédent à -PI pour que le premier angle soit forcément plus grand (car compris entre -PI/2 et PI/2)
 		float angle_cp_ij_pred = -M_PI;
 
-		// Tracage ( On evite le premier point)
+		// Tracé ( On evite le premier point)
 		for(int i = 0; i < D; i++)
 		{
 			x += inxc;

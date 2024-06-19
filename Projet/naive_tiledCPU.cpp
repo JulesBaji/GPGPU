@@ -26,7 +26,6 @@ void naive_tiledCPU(const los::Heightmap &hm, los::Heightmap &result) {
         }
     }
     save_ppm_image(result, "result_cpu.ppm");
-    
 }
 
 void save_ppm_image(const los::Heightmap &result, const std::string &filename) {
@@ -54,4 +53,4 @@ void save_ppm_image(const los::Heightmap &result, const std::string &filename) {
     }
 
     ppm_file.close();
-    }
+}

@@ -1,6 +1,4 @@
 #include "optimisedGPU2.hpp"
-// compatible CUDA
-#include <algorithm>
 #define BLOCK_SIZE 1
 #define N 1024
 
@@ -14,7 +12,7 @@ __global__ void kernelOptimised_viewtest2( const uint8_t *const dev_hmPtr, uint8
 	// 0 1 0 1
 	int alpha = tid % 2;
 	// 0 0 1 1
-	int beta = max(0, min(1, val - 1));
+	int beta = val/2;
 
 	// faut pas dépasser la dim (dimMax peut être > dim) + on vesqui le dernier pixel
 	int iterateur_x = min(blockIdx.x/4, width - 2);
@@ -40,7 +38,7 @@ __global__ void kernelOptimised_viewtest2( const uint8_t *const dev_hmPtr, uint8
 	// Initialisation de l'angle précédent à -PI pour que le premier angle soit forcément plus grand (car compris entre -PI/2 et PI/2)
 	float angle_cp_ij_pred = -M_PI;
 
-	// Tracage ( On evite le premier point)
+	// Tracé ( On evite le premier point)
 	for(int i = 0; i < D; i++)
 	{
 		x += inxc;
