@@ -3,8 +3,6 @@
 
 #include "utils/ppm.hpp"
 #include "utils/commonCUDA.hpp"
-#include <iostream>
-#include <vector>
 
 void naive_tiledCPU(const los::Heightmap &hm, los::Heightmap &result);
 void save_ppm_image(const los::Heightmap &result, const std::string &filename);

@@ -1,6 +1,6 @@
 #include "naive_tiledCPU.hpp"
 #include <fstream>
-
+#include <algorithm>
 
 void naive_tiledCPU(const los::Heightmap &hm, los::Heightmap &result) {
     const uint32_t tile_size = 1; // Taille de tuile arbitraire, à ajuster
@@ -25,6 +25,7 @@ void naive_tiledCPU(const los::Heightmap &hm, los::Heightmap &result) {
             }
         }
     }
+
     save_ppm_image(result, "result_cpu.ppm");
 }
 
@@ -43,7 +44,7 @@ void save_ppm_image(const los::Heightmap &result, const std::string &filename) {
     ppm_file << width << " " << height << "\n";
     ppm_file << "255\n";
 
-    for (uint32_t y = 0; y < height; ++y) {
+    for (int y = height - 1; y >= 0; --y) {
         for (uint32_t x = 0; x < width; ++x) {
             uint8_t pixel_value = result.getPixel(x, y);
             ppm_file.write(reinterpret_cast<const char*>(&pixel_value), sizeof(uint8_t));

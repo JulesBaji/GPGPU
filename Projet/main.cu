@@ -94,21 +94,16 @@ int main( int argc, char **argv )
 	std::cout << "  Parallel version on GPU for Tiled Kernel  "	<< std::endl;
 	std::cout << "============================================"	<< std::endl;
 
-	const float timeGPU_tiled = naive_tiledGPU(resultatsGPUNaif, resultatsTiledGPU);
+	ChronoCPU chronoTiledGPU;
+	chronoTiledGPU.start();
+
+	naive_tiledGPU(resultatsGPUNaif, resultatsTiledGPU);
+
+	chronoTiledGPU.stop();
+	const float timeGPU_tiled = chronoTiledGPU.elapsedTime();
 	
 	
 	std::cout << "-> Done : " << timeGPU_tiled << " ms" << std::endl << std::endl;
-
-	// ================================================================================================================
-
-	std::cout << "============================================"	<< std::endl;
-	std::cout << " Parallel version on GPU 2 for Tiled Kernel "	<< std::endl;
-	std::cout << "============================================"	<< std::endl;
-
-	// const float time_optimized_GPU_tiled = naive_tiledGPU(resultatsGPUOptimise2, resultatsTiledGPU);
-	
-	
-	// std::cout << "-> Done : " << time_optimized_GPU_tiled << " ms" << std::endl << std::endl;
 
 	// ================================================================================================================
 
@@ -122,7 +117,6 @@ int main( int argc, char **argv )
 
 	std::cout << "-> CPU Tiled Naïf : " << std::fixed << std::setprecision(2) << timeCPU_tiled << " ms" << std::endl;
 	std::cout << "-> GPU Tiled Naïf : " << std::fixed << std::setprecision(2) << timeGPU_tiled << " ms" << std::endl;
-	// std::cout << "-> GPU Tiled Naïf : " << std::fixed << std::setprecision(2) << time_optimized_GPU_tiled << " ms" << std::endl;
 
 	return EXIT_SUCCESS;
 }
