@@ -1,36 +1,39 @@
 #include "optimisedGPU2.hpp"
-#define BLOCK_SIZE 256
+// compatible CUDA
+#include <algorithm>
+#define BLOCK_SIZE 1
 #define N 1024
 
 __global__ void kernelOptimised_viewtest2( const uint8_t *const dev_hmPtr, uint8_t *const dev_resultatsGPUPtr, const int size, const int width, const int height, 
 	const int xc, const int yc) 
 {
-	// refaire grille ? Régler pb grille avec longueur != largeur et pixel en trop
+	// refaire grille ?
 	int tid = threadIdx.x + blockDim.x*blockIdx.x;
 	// A B C D
 	int val = tid % 4;
-	// 0 1 1 0
-	int alpha = 1 - ((val % 3) == 0);
-	// 0 0 1 1
-	int beta = (val - 1) <= 0 ? 0 : 1;
 	// 0 1 0 1
-	int gamma = tid % 2;
+	int alpha = tid % 2;
+	// 0 0 1 1
+	int beta = max(0, min(1, val - 1));
 
-	// D C B A (pas besoin de A vu que c'est l'opposé de C)
-	int tid_x = (alpha*(1-beta)*(width-1) + alpha*beta*(width-1) + alpha*(1-beta)*(width-1))
-		+ (1-gamma)*(1-beta)*threadIdx.x/4 + (1-gamma)*beta*(width-1 - threadIdx.x/4);
-	int tid_y = ((1-alpha)*beta*(height-1) + alpha*beta*(height-1) + (1-alpha)*beta*(height-1))
-		+ gamma*(1-beta)*threadIdx.x/4 + gamma*beta*(height-1 - threadIdx.x/4);
+	// faut pas dépasser la dim (dimMax peut être > dim) + on vesqui le dernier pixel
+	int iterateur_x = min(blockIdx.x/4, width - 2);
+	int iterateur_y = min(blockIdx.x/4, height - 2);
 
-	dev_resultatsGPUPtr[tid_x + tid_y*width] = 255u;
+	// B + C (simplifications A + B + C + D car A et D = 0 pour width)
+	// alpha = itérations sur les colonnes
+	// beta = itérations de droite à gauche
+	int tid_x = (alpha*(1-beta)*(width-1) + (1-alpha)*beta*(width-1)) + (1-alpha)*(-2*beta+1)*iterateur_x;
+	// C + D
+	int tid_y = ((1-alpha)*beta*(height-1) + alpha*beta*(height-1)) + alpha*(-2*beta+1)*iterateur_y;
 
+	// DDA
 	const int c = xc + yc * width;
 	const int zc = dev_hmPtr[c];
 
-	// DDA
 	float x = xc, y = yc;
 	const int dx = tid_x - xc, dy = tid_y - yc;
-	const int D = (abs(dx) > abs(dy)) ? abs(dx) : abs(dy);
+	const int D = max(abs(dx), abs(dy));
 	const float inxc = static_cast<float>(dx) / static_cast<float>(D);
 	const float incy = static_cast<float>(dy) / static_cast<float>(D);
 
@@ -76,8 +79,8 @@ float optimised_viewtestGPU2(los::Heightmap &hm, const Point &c, los::Heightmap 
 	HANDLE_ERROR (cudaMemcpy( dev_resultatsGPUPtr, resultatsGPUPtr, resultatsGPU.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 
 	dim3 blockSize(BLOCK_SIZE); 
-	int minDim = width < height ? width : height;
-    dim3 gridSize((4*minDim + blockSize.x - 1) / blockSize.x);
+	int maxDim = max(width, height);
+    dim3 gridSize((4*maxDim + blockSize.x - 1) / blockSize.x);
 
 	ChronoGPU chr;
 	chr.start();
