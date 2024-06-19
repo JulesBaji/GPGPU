@@ -2,21 +2,20 @@
 #define BLOCK_SIZE 16
 #define N 1024
 
-__global__ void kernelOptimised_viewtest( const uint8_t *const dev_hmPtr, uint8_t *const dev_resultatsGPUPtr, const int size, const int width, const int height, 
-	const int xc, const int yc) 
+__global__ void kernelOptimised_viewtest( const uint8_t *const dev_hmPtr, uint8_t *const dev_resultatsGPUPtr) 
 {
-	const int c = xc + yc * width;
+	const int c = dev_xc + dev_yc * dev_width;
 	const int zc = dev_hmPtr[c];
 	int tid_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int tid_y = threadIdx.y + blockIdx.y * blockDim.y;
 
-	if (tid_y ==0 || tid_x == 0 || tid_y == height - 1 || tid_x == width - 1)
+	if (tid_y ==0 || tid_x == 0 || tid_y == dev_height - 1 || tid_x == dev_width - 1)
 	{
 		// DDA
-		float x = xc, y = yc;
-		const int dx = tid_x - xc, dy = tid_y - yc;
+		float x = dev_xc, y = dev_yc;
+		const int dx = tid_x - dev_xc, dy = tid_y - dev_yc;
 		const int D = max(abs(dx), abs(dy));
-		const float inxc = static_cast<float>(dx) / static_cast<float>(D);
+		const float incx = static_cast<float>(dx) / static_cast<float>(D);
 		const float incy = static_cast<float>(dy) / static_cast<float>(D);
 
 		// Initialisation de l'angle précédent à -PI pour que le premier angle soit forcément plus grand (car compris entre -PI/2 et PI/2)
@@ -25,13 +24,13 @@ __global__ void kernelOptimised_viewtest( const uint8_t *const dev_hmPtr, uint8_
 		// Tracé ( On evite le premier point)
 		for(int i = 0; i < D; i++)
 		{
-			x += inxc;
+			x += incx;
 			y += incy;
 
 			// angle(c,p(i,j))
-			const int p_ij = int(x) + int(y) * width;
+			const int p_ij = int(x) + int(y) * dev_width;
 			const int zp_ij = dev_hmPtr[p_ij];
-			const float angle_cpij = atan2f(zp_ij - zc, sqrtf(float((x - xc)*(x - xc) + (y - yc)*(y - yc))));
+			const float angle_cpij = atan2f(zp_ij - zc, sqrtf(float((x - dev_xc)*(x - dev_xc) + (y - dev_yc)*(y - dev_yc))));
 			
 			// Vérification angle(c,p) < angle(c,p(i,j))
 			if ( angle_cpij >= angle_cp_ij_pred )
@@ -61,13 +60,19 @@ float optimised_viewtestGPU(los::Heightmap &hm, const Point &c, los::Heightmap &
 	HANDLE_ERROR (cudaMemcpy( dev_hmPtr, hmPtr, hm.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 	HANDLE_ERROR (cudaMemcpy( dev_resultatsGPUPtr, resultatsGPUPtr, resultatsGPU.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 
+	HANDLE_ERROR(cudaMemcpyToSymbol(dev_size, &size, sizeof(int)));
+	HANDLE_ERROR(cudaMemcpyToSymbol(dev_width, &width, sizeof(int)));
+    HANDLE_ERROR(cudaMemcpyToSymbol(dev_height, &height, sizeof(int)));
+    HANDLE_ERROR(cudaMemcpyToSymbol(dev_xc, &c.x, sizeof(int)));
+    HANDLE_ERROR(cudaMemcpyToSymbol(dev_yc, &c.y, sizeof(int)));
+
 	dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE); 
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
 
 	ChronoGPU chr;
 	chr.start();
 
-	kernelOptimised_viewtest<<<gridSize, blockSize>>>(dev_hmPtr, dev_resultatsGPUPtr, size, width, height, c.x, c.y);
+	kernelOptimised_viewtest<<<gridSize, blockSize>>>(dev_hmPtr, dev_resultatsGPUPtr);
 
 	HANDLE_ERROR (cudaMemcpy( resultatsGPUPtr, dev_resultatsGPUPtr, resultatsGPU.getSize() * sizeof(uint8_t), cudaMemcpyDeviceToHost ));
 
