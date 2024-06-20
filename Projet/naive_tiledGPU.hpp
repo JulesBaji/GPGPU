@@ -3,7 +3,6 @@
 
 #include "utils/ppm.hpp"
 #include "utils/commonCUDA.hpp"
-#include "save_ppm_image.hpp"
 #include "constant_memory.hpp"
 #include "utils/chronoGPU.hpp"
 #include <iostream>

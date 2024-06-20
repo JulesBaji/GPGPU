@@ -7,6 +7,7 @@
 #include "naive_tiledCPU.hpp"
 #include "naive_tiledGPU.hpp"
 #include <iomanip>
+#include "save_ppm_image.hpp"
 
 int main( int argc, char **argv ) 
 {	
@@ -28,6 +29,7 @@ int main( int argc, char **argv )
 	const uint32_t tile_size_height = (height + ppm_tiled_size - 1) / ppm_tiled_size; // taille des tuiles en hauteur
 	los::Heightmap resultatsTiledCPU(ppm_tiled_size, ppm_tiled_size);
 	los::Heightmap resultatsTiledGPU(ppm_tiled_size, ppm_tiled_size);
+	los::Heightmap resultatsTiledGPUOptimise(ppm_tiled_size, ppm_tiled_size);
 	
 	// ================================================================================================================
 	std::cout << "============================================"	<< std::endl;
@@ -41,7 +43,9 @@ int main( int argc, char **argv )
 
 	chronoNaif.stop();
 	const float timeCPUNaif = chronoNaif.elapsedTime();
-	
+
+	save_ppm_image(resultatsCPUNaif, "results_naive_viewtest_CPU.ppm");
+
 	std::cout << "-> Done : " << timeCPUNaif << " ms" << std::endl << std::endl;
 
 	// ================================================================================================================
@@ -50,6 +54,8 @@ int main( int argc, char **argv )
 	std::cout << "============================================"	<< std::endl;
 
 	const float timeGPUNaif = naive_viewtestGPU(hm, pixelDonne, resultatsGPUNaif);
+
+	save_ppm_image(resultatsGPUNaif, "results_naive_viewtest_GPU.ppm");
 	
 	std::cout << "-> Done : " << timeGPUNaif << " ms" << std::endl << std::endl;
 	
@@ -59,6 +65,8 @@ int main( int argc, char **argv )
 	std::cout << "============================================"	<< std::endl;
 
 	const float timeGPUOptimise = optimised_viewtestGPU(hm, pixelDonne, resultatsGPUOptimise );
+
+	save_ppm_image(resultatsGPUOptimise, "results_optimized_viewtest_GPU.ppm");
 	
 	std::cout << "-> Done : " << timeGPUOptimise << " ms" << std::endl << std::endl;
 
@@ -68,6 +76,8 @@ int main( int argc, char **argv )
 	std::cout << "============================================"	<< std::endl;
 
 	const float timeGPUOptimise2 = optimised_viewtestGPU2(hm, pixelDonne, resultatsGPUOptimise2 );
+
+	save_ppm_image(resultatsGPUOptimise2, "results_optimized_viewtest_GPU2.ppm");
 	
 	std::cout << "-> Done : " << timeGPUOptimise2 << " ms" << std::endl << std::endl;
 	
@@ -85,6 +95,7 @@ int main( int argc, char **argv )
 	chronoTiledCPU.stop();
 	const float timeCPU_tiled = chronoTiledCPU.elapsedTime();
 	
+	save_ppm_image(resultatsTiledCPU, "results_naive_tiled_CPU.ppm");
 	
 	std::cout << "-> Done : " << timeCPU_tiled << " ms" << std::endl << std::endl;
 
@@ -94,16 +105,11 @@ int main( int argc, char **argv )
 	std::cout << "Naive Parallel version on GPU for Tiled Kernel"	<< std::endl;
 	std::cout << "============================================"	<< std::endl;
 
-	ChronoCPU chronoTiledGPU;
-	chronoTiledGPU.start();
+	const float time_naive_tiled_GPU =  naive_tiledGPU(hm, resultatsTiledGPU, ppm_tiled_size, width, height, tile_size_width, tile_size_height);
 
-	naive_tiledGPU(hm, resultatsTiledGPU, ppm_tiled_size, width, height, tile_size_width, tile_size_height);
-
-	chronoTiledGPU.stop();
-	const float timeGPU_tiled = chronoTiledGPU.elapsedTime();
+	save_ppm_image(resultatsTiledGPU, "results_naive_tiled_GPU.ppm");
 	
-	
-	std::cout << "-> Done : " << timeGPU_tiled << " ms" << std::endl << std::endl;
+	std::cout << "-> Done : " << time_naive_tiled_GPU << " ms" << std::endl << std::endl;
 
 	// ================================================================================================================
 
@@ -111,30 +117,25 @@ int main( int argc, char **argv )
 	std::cout << "Optimized Parallel version on GPU for Tiled Kernel"	<< std::endl;
 	std::cout << "============================================"	<< std::endl;
 
-	ChronoCPU chronoOptimizedTiledGPU;
-	chronoOptimizedTiledGPU.start();
+	const float time_optimized_tiled_GPU =  optimized_tiledGPU(hm, resultatsTiledGPUOptimise, ppm_tiled_size, width, height, tile_size_width, tile_size_height);
 
-	optimized_tiledGPU(hm, resultatsTiledGPU, ppm_tiled_size, width, height, tile_size_width, tile_size_height);
-
-	chronoOptimizedTiledGPU.stop();
-	const float optimizedTimeGPU_tiled = chronoOptimizedTiledGPU.elapsedTime();
+	save_ppm_image(resultatsTiledGPUOptimise, "results_optimized_tiled_GPU.ppm");
 	
-	
-	std::cout << "-> Done : " << optimizedTimeGPU_tiled << " ms" << std::endl << std::endl;
+	std::cout << "-> Done : " << time_optimized_tiled_GPU << " ms" << std::endl << std::endl;
 
 	// ================================================================================================================
 
 	std::cout << "============================================" << std::endl;
 	std::cout << "     Times recapitulation (only filter)     " << std::endl;
 	std::cout << "============================================" << std::endl;
-	std::cout << "-> CPU Naïf : " << std::fixed << std::setprecision(2) << timeCPUNaif << " ms" << std::endl;
-	std::cout << "-> GPU Naïf : " << std::fixed << std::setprecision(2) << timeGPUNaif << " ms" << std::endl;
-	std::cout << "-> GPU Optimisé : " << std::fixed << std::setprecision(2) << timeGPUOptimise << " ms" << std::endl;
-	std::cout << "-> GPU Optimisé 2 : " << std::fixed << std::setprecision(2) << timeGPUOptimise2 << " ms" << std::endl;
+	std::cout << "-> CPU Viewtest Naïf : " << std::fixed << std::setprecision(2) << timeCPUNaif << " ms" << std::endl;
+	std::cout << "-> GPU Viewtest Naïf : " << std::fixed << std::setprecision(2) << timeGPUNaif << " ms" << std::endl;
+	std::cout << "-> GPU Viewtest Optimisé : " << std::fixed << std::setprecision(2) << timeGPUOptimise << " ms" << std::endl;
+	std::cout << "-> GPU Viewtest Optimisé 2 : " << std::fixed << std::setprecision(2) << timeGPUOptimise2 << " ms" << std::endl;
 
 	std::cout << "-> CPU Tiled Naïf : " << std::fixed << std::setprecision(2) << timeCPU_tiled << " ms" << std::endl;
-	std::cout << "-> GPU Tiled Naïf : " << std::fixed << std::setprecision(2) << timeGPU_tiled << " ms" << std::endl;
-	std::cout << "-> GPU Tiled Optimisé : " << std::fixed << std::setprecision(2) << optimizedTimeGPU_tiled << " ms" << std::endl;
+	std::cout << "-> GPU Tiled Naïf : " << std::fixed << std::setprecision(2) << time_naive_tiled_GPU << " ms" << std::endl;
+	std::cout << "-> GPU Tiled Optimisé : " << std::fixed << std::setprecision(2) << time_optimized_tiled_GPU << " ms" << std::endl;
 
 	return EXIT_SUCCESS;
 }

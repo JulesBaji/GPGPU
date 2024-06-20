@@ -70,8 +70,6 @@ float naive_tiledGPU(los::Heightmap &hm, los::Heightmap &result, const uint32_t 
 
 	chr.stop();
 
-    save_ppm_image(result, "result_gpu_naive.ppm");
-
 	HANDLE_ERROR (cudaFree( dev_hmPtr ));
 	HANDLE_ERROR (cudaFree( dev_resultatsGPUPtr ));
 

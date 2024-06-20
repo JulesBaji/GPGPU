@@ -25,15 +25,26 @@ __device__ void atomicMaxUint8_optimizedGPU(uint8_t* address, uint8_t val)
 
 __global__ void kernelOptimized_tiledGPU(const uint8_t *dev_hmPtr, uint8_t *dev_resultPtr)
 {
+    extern __shared__ uint8_t shared_mem[];
+
     int tid_x = threadIdx.x + blockIdx.x * blockDim.x;
     int tid_y = threadIdx.y + blockIdx.y * blockDim.y;
-
-    uint8_t height_value = dev_hmPtr[tid_x + tid_y * dev_width];
 
     int tiled_tid_x = tid_x / dev_tile_size_width;
     int tiled_tid_y = tid_y / dev_tile_size_height;
 
-	atomicMaxUint8_optimizedGPU(&dev_resultPtr[tiled_tid_x + tiled_tid_y * dev_ppm_tiled_size], height_value);
+    int tid_tiled = tiled_tid_x + tiled_tid_y * dev_ppm_tiled_size;
+
+    shared_mem[tid_tiled] = 0u;
+    __syncthreads();
+
+    uint8_t height_value = dev_hmPtr[tid_x + tid_y * dev_width];
+
+    shared_mem[tid_tiled] = max(shared_mem[tid_tiled], height_value);
+    __syncthreads();
+
+    if(threadIdx.x == 0 && threadIdx.y == 0)
+        atomicMaxUint8_optimizedGPU(&dev_resultPtr[tid_tiled], shared_mem[tid_tiled]);
 }
 
 float optimized_tiledGPU(los::Heightmap &hm, los::Heightmap &result, const uint32_t ppm_tiled_size, const uint32_t width, const uint32_t height, 
@@ -59,16 +70,16 @@ float optimized_tiledGPU(los::Heightmap &hm, los::Heightmap &result, const uint3
 	dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE); 
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
 
+    const int shared_mem_size = ppm_tiled_size * ppm_tiled_size * sizeof(uint8_t);
+
 	ChronoGPU chr;
 	chr.start();
 
-	kernelOptimized_tiledGPU<<<gridSize, blockSize>>>(dev_hmPtr, dev_resultatsGPUPtr);
+	kernelOptimized_tiledGPU<<<gridSize, blockSize, shared_mem_size>>>(dev_hmPtr, dev_resultatsGPUPtr);
 
 	HANDLE_ERROR (cudaMemcpy( resultatsGPUPtr, dev_resultatsGPUPtr, result.getSize() * sizeof(uint8_t), cudaMemcpyDeviceToHost ));
 
 	chr.stop();
-
-    save_ppm_image(result, "result_gpu_naive.ppm");
 
 	HANDLE_ERROR (cudaFree( dev_hmPtr ));
 	HANDLE_ERROR (cudaFree( dev_resultatsGPUPtr ));

@@ -22,5 +22,4 @@ void naive_tiledCPU(const los::Heightmap &hm, los::Heightmap &result, const uint
             result.setPixel(tile_x, tile_y, max_height);
         }
     }
-    save_ppm_image(result, "result_cpu.ppm");
 }
