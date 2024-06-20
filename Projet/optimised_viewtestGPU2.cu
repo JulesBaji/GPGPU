@@ -1,4 +1,4 @@
-#include "optimisedGPU2.hpp"
+#include "optimised_viewtestGPU2.hpp"
 #define BLOCK_SIZE 1
 #define N 1024
 

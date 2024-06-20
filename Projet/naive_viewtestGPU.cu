@@ -61,6 +61,7 @@ float naive_viewtestGPU(los::Heightmap &hm, const Point &c, los::Heightmap &resu
 	HANDLE_ERROR (cudaMemcpy( dev_hmPtr, hmPtr, hm.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 	HANDLE_ERROR (cudaMemcpy( dev_resultatsGPUPtr, resultatsGPUPtr, resultatsGPU.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 
+	// les HANDLE_ERROR renvoient une erreur sur guacamole ??
 	HANDLE_ERROR(cudaMemcpyToSymbol(dev_size, &size, sizeof(int)));
 	HANDLE_ERROR(cudaMemcpyToSymbol(dev_width, &width, sizeof(int)));
     HANDLE_ERROR(cudaMemcpyToSymbol(dev_height, &height, sizeof(int)));

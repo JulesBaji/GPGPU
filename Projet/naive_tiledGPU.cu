@@ -1,90 +1,79 @@
 #include "naive_tiledGPU.hpp"
-#include "utils/commonCUDA.hpp" // Assurez-vous que HANDLE_ERROR et les autres macros nécessaires sont définies ici
 
 #define BLOCK_SIZE 16
 
-__global__ void kernelNaive_tiledGPU(const uint8_t *dev_hmPtr, uint8_t *dev_resultPtr, uint32_t width, uint32_t height, uint32_t tile_size)
+__device__ void atomicMaxUint8(uint8_t* address, uint8_t val)
 {
-    int tile_x = blockIdx.x * tile_size;
-    int tile_y = blockIdx.y * tile_size;
+    unsigned int* base_address = (unsigned int*)((size_t)address & ~3);
 
-    // Compute the maximum height for the current tile
-    uint8_t max_height = 0;
+    unsigned int mask = 0xFF << (((size_t)address & 3) * 8);
+    unsigned int shift = ((size_t)address & 3) * 8;
 
-    for (int y = tile_y; y < min(tile_y + tile_size, height); ++y) {
-        for (int x = tile_x; x < min(tile_x + tile_size, width); ++x) {
-            uint8_t height_val = dev_hmPtr[y * width + x];
-            max_height = max(max_height, height_val);
-        }
-    }
+    unsigned int old, assumed, new_;
 
-    // Set all pixels in the current tile to the maximum height
-    for (int y = tile_y; y < min(tile_y + tile_size, height); ++y) {
-        for (int x = tile_x; x < min(tile_x + tile_size, width); ++x) {
-            dev_resultPtr[y * width + x] = max_height;
-        }
-    }
+    old = *base_address;
+
+    do {
+        assumed = old;
+        uint8_t current_val = (old & mask) >> shift;
+        uint8_t new_val = max(current_val, val);
+        new_ = (old & ~mask) | (new_val << shift);
+        old = atomicCAS(base_address, assumed, new_);
+
+    } while (assumed != old);
 }
 
-void save_ppm_image_GPU(const los::Heightmap &result, const std::string &filename) {
-    std::ofstream ppm_file(filename, std::ios::out | std::ios::binary);
+__global__ void kernelNaive_tiledGPU(const uint8_t *dev_hmPtr, uint8_t *dev_resultPtr, const uint32_t ppm_tiled_size, const uint32_t width, const uint32_t tile_size_width, const uint32_t tile_size_height)
+{
+    int tid_x = threadIdx.x + blockIdx.x * blockDim.x;
+    int tid_y = threadIdx.y + blockIdx.y * blockDim.y;
 
-    if (!ppm_file.is_open()) {
-        std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
-        return;
-    }
+    uint8_t height_value = dev_hmPtr[tid_x + tid_y * width];
 
-    const uint32_t width = result.getWidth();
-    const uint32_t height = result.getHeight();
+    int tiled_tid_x = tid_x / tile_size_width;
+    int tiled_tid_y = tid_y / tile_size_height;
 
-    ppm_file << "P6\n";
-    ppm_file << width << " " << height << "\n";
-    ppm_file << "255\n";
-
-    for (int y = height - 1; y >= 0; --y) {
-        for (uint32_t x = 0; x < width; ++x) {
-            uint8_t pixel_value = result.getPixel(x, y);
-            ppm_file.write(reinterpret_cast<const char*>(&pixel_value), sizeof(uint8_t));
-            ppm_file.write(reinterpret_cast<const char*>(&pixel_value), sizeof(uint8_t));
-            ppm_file.write(reinterpret_cast<const char*>(&pixel_value), sizeof(uint8_t));
-        }
-    }
-
-    ppm_file.close();
+	atomicMaxUint8(&dev_resultPtr[tiled_tid_x + tiled_tid_y * ppm_tiled_size], height_value);
 }
 
-void naive_tiledGPU(los::Heightmap &hm, los::Heightmap &result) {
-    const uint32_t tile_size = 16; // Taille de tuile arbitraire, à ajuster
-    const uint32_t width = hm.getWidth();
-    const uint32_t height = hm.getHeight();
+float naive_tiledGPU(los::Heightmap &hm, los::Heightmap &result, const uint32_t ppm_tiled_size, const uint32_t width, const uint32_t height, 
+    const uint32_t tile_size_width, const uint32_t tile_size_height)
+{
+	uint8_t *hmPtr = hm.getPtr();
+	uint8_t *resultatsGPUPtr = result.getPtr();
 
-    uint8_t *dev_hmPtr;
-    uint8_t *dev_resultPtr;
+	uint8_t *dev_hmPtr;
+	uint8_t *dev_resultatsGPUPtr;
 
-    // Allouer de la mémoire sur le GPU
-    HANDLE_ERROR(cudaMalloc(&dev_hmPtr, hm.getSize() * sizeof(uint8_t)));
-    HANDLE_ERROR(cudaMalloc(&dev_resultPtr, result.getSize() * sizeof(uint8_t)));
+	HANDLE_ERROR(cudaMalloc(&dev_hmPtr, hm.getSize() * sizeof(uint8_t)));
+	HANDLE_ERROR(cudaMalloc(&dev_resultatsGPUPtr, result.getSize() * sizeof(uint8_t)));
 
-    // Copier les données de la carte de hauteur sur le GPU
-    HANDLE_ERROR(cudaMemcpy(dev_hmPtr, hm.getPtr(), hm.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice));
+	HANDLE_ERROR (cudaMemcpy( dev_hmPtr, hmPtr, hm.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
+	HANDLE_ERROR (cudaMemcpy( dev_resultatsGPUPtr, resultatsGPUPtr, result.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 
-    // Définir la taille des blocs et de la grille pour le kernel
-    dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE);
-    dim3 gridSize((width + BLOCK_SIZE - 1) / BLOCK_SIZE, (height + BLOCK_SIZE - 1) / BLOCK_SIZE);
+	// les HANDLE_ERROR renvoient une erreur sur guacamole ??
+	HANDLE_ERROR(cudaMemcpyToSymbol(dev_ppm_tiled_size, &ppm_tiled_size, sizeof(int)));
+	HANDLE_ERROR(cudaMemcpyToSymbol(dev_width, &width, sizeof(int)));
+    HANDLE_ERROR(cudaMemcpyToSymbol(dev_height, &height, sizeof(int)));
+    HANDLE_ERROR(cudaMemcpyToSymbol(dev_tile_size_width, &tile_size_width, sizeof(int)));
+    HANDLE_ERROR(cudaMemcpyToSymbol(dev_tile_size_height, &tile_size_height, sizeof(int)));
 
-    // Appeler le kernel
-    kernelNaive_tiledGPU<<<gridSize, blockSize>>>(dev_hmPtr, dev_resultPtr, width, height, tile_size);
+	dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE); 
+    dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
 
-    // Attendre que tous les threads CUDA aient terminé
-    cudaDeviceSynchronize();
+	ChronoGPU chr;
+	chr.start();
 
-    // Copier les résultats du GPU vers l'hôte
-    HANDLE_ERROR(cudaMemcpy(result.getPtr(), dev_resultPtr, result.getSize() * sizeof(uint8_t), cudaMemcpyDeviceToHost));
+	kernelNaive_tiledGPU<<<gridSize, blockSize>>>(dev_hmPtr, dev_resultatsGPUPtr, ppm_tiled_size, width, tile_size_width, tile_size_height);
 
-    // Libérer la mémoire allouée sur le GPU
-    HANDLE_ERROR(cudaFree(dev_hmPtr));
-    HANDLE_ERROR(cudaFree(dev_resultPtr));
+	HANDLE_ERROR (cudaMemcpy( resultatsGPUPtr, dev_resultatsGPUPtr, result.getSize() * sizeof(uint8_t), cudaMemcpyDeviceToHost ));
 
-    // Sauvegarder l'image résultante
-    save_ppm_image_GPU(result, "result_gpu_naive.ppm");
+	chr.stop();
+
+    save_ppm_image(result, "result_gpu_naive.ppm");
+
+	HANDLE_ERROR (cudaFree( dev_hmPtr ));
+	HANDLE_ERROR (cudaFree( dev_resultatsGPUPtr ));
+
+	return chr.elapsedTime();
 }

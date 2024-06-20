@@ -1,57 +1,26 @@
 #include "naive_tiledCPU.hpp"
-#include <fstream>
-#include <algorithm>
 
-void naive_tiledCPU(const los::Heightmap &hm, los::Heightmap &result) {
-    const uint32_t tile_size = 1; // Taille de tuile arbitraire, à ajuster
-    const uint32_t width = hm.getWidth();
-    const uint32_t height = hm.getHeight();
-    
-    for (uint32_t tile_y = 0; tile_y < height; tile_y += tile_size) {
-        for (uint32_t tile_x = 0; tile_x < width; tile_x += tile_size) {
+void naive_tiledCPU(const los::Heightmap &hm, los::Heightmap &result, const uint32_t ppm_tiled_size, const uint32_t width, const uint32_t height, 
+    const uint32_t tile_size_width, const uint32_t tile_size_height) {
+
+    for (uint32_t tile_y = 0; tile_y < ppm_tiled_size; tile_y++) {
+        for (uint32_t tile_x = 0; tile_x < ppm_tiled_size; tile_x++) {
+
             uint8_t max_height = 0;
-            
-            for (uint32_t y = tile_y; y < std::min(tile_y + tile_size, height); ++y) {
-                for (uint32_t x = tile_x; x < std::min(tile_x + tile_size, width); ++x) {
+
+            uint32_t start_y = tile_y * tile_size_height;
+            uint32_t end_y = std::min(start_y + tile_size_height, height);
+            uint32_t start_x = tile_x * tile_size_width;
+            uint32_t end_x = std::min(start_x + tile_size_width, width);
+
+            for (uint32_t y = start_y; y < end_y; y++) {
+                for (uint32_t x = start_x; x < end_x; x++) {
                     uint8_t height_val = hm.getPixel(x, y);
                     max_height = std::max(max_height, height_val);
                 }
             }
-
-            for (uint32_t y = tile_y; y < std::min(tile_y + tile_size, height); ++y) {
-                for (uint32_t x = tile_x; x < std::min(tile_x + tile_size, width); ++x) {
-                    result.setPixel(x, y, max_height);
-                }
-            }
+            result.setPixel(tile_x, tile_y, max_height);
         }
     }
-
     save_ppm_image(result, "result_cpu.ppm");
-}
-
-void save_ppm_image(const los::Heightmap &result, const std::string &filename) {
-    std::ofstream ppm_file(filename, std::ios::out | std::ios::binary);
-
-    if (!ppm_file.is_open()) {
-        std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
-        return;
-    }
-
-    const uint32_t width = result.getWidth();
-    const uint32_t height = result.getHeight();
-
-    ppm_file << "P6\n";
-    ppm_file << width << " " << height << "\n";
-    ppm_file << "255\n";
-
-    for (int y = height - 1; y >= 0; --y) {
-        for (uint32_t x = 0; x < width; ++x) {
-            uint8_t pixel_value = result.getPixel(x, y);
-            ppm_file.write(reinterpret_cast<const char*>(&pixel_value), sizeof(uint8_t));
-            ppm_file.write(reinterpret_cast<const char*>(&pixel_value), sizeof(uint8_t));
-            ppm_file.write(reinterpret_cast<const char*>(&pixel_value), sizeof(uint8_t));
-        }
-    }
-
-    ppm_file.close();
 }

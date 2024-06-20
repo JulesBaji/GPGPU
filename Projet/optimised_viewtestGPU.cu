@@ -1,4 +1,4 @@
-#include "optimisedGPU.hpp"
+#include "optimised_viewtestGPU.hpp"
 #define BLOCK_SIZE 16
 #define N 1024
 
@@ -65,7 +65,7 @@ float optimised_viewtestGPU(los::Heightmap &hm, const Point &c, los::Heightmap &
     HANDLE_ERROR(cudaMemcpyToSymbol(dev_height, &height, sizeof(int)));
     HANDLE_ERROR(cudaMemcpyToSymbol(dev_xc, &c.x, sizeof(int)));
     HANDLE_ERROR(cudaMemcpyToSymbol(dev_yc, &c.y, sizeof(int)));
-
+	
 	dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE); 
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
 
