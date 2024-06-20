@@ -4,7 +4,6 @@
 
 __global__ void kernelOptimised_viewtest2( const uint8_t *const dev_hmPtr, uint8_t *const dev_resultatsGPUPtr) 
 {
-	// refaire grille ?
 	int tid = threadIdx.x + blockDim.x*blockIdx.x;
 	// A B C D
 	int val = tid % 4;

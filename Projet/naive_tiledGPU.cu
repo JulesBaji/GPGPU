@@ -51,7 +51,6 @@ float naive_tiledGPU(los::Heightmap &hm, los::Heightmap &result, const uint32_t 
 	HANDLE_ERROR (cudaMemcpy( dev_hmPtr, hmPtr, hm.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 	HANDLE_ERROR (cudaMemcpy( dev_resultatsGPUPtr, resultatsGPUPtr, result.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 
-	// les HANDLE_ERROR renvoient une erreur sur guacamole ??
 	HANDLE_ERROR(cudaMemcpyToSymbol(dev_ppm_tiled_size, &ppm_tiled_size, sizeof(int)));
 	HANDLE_ERROR(cudaMemcpyToSymbol(dev_width, &width, sizeof(int)));
     HANDLE_ERROR(cudaMemcpyToSymbol(dev_height, &height, sizeof(int)));

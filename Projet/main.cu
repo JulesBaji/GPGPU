@@ -24,9 +24,9 @@ int main( int argc, char **argv )
 	los::Heightmap resultatsGPUOptimise(width, height);
 	los::Heightmap resultatsGPUOptimise2(width, height);
 
-	const uint32_t ppm_tiled_size = 10; // nombre de pixels de l'image
-	const uint32_t tile_size_width = (width + ppm_tiled_size - 1) / ppm_tiled_size; // taille des tuiles en largeur
-	const uint32_t tile_size_height = (height + ppm_tiled_size - 1) / ppm_tiled_size; // taille des tuiles en hauteur
+	const uint32_t ppm_tiled_size = 10; // nombre de tuiles/pixels de l'image 
+	const uint32_t tile_size_width = (width + ppm_tiled_size - 1) / ppm_tiled_size; 
+	const uint32_t tile_size_height = (height + ppm_tiled_size - 1) / ppm_tiled_size;
 	los::Heightmap resultatsTiledCPU(ppm_tiled_size, ppm_tiled_size);
 	los::Heightmap resultatsTiledGPU(ppm_tiled_size, ppm_tiled_size);
 	los::Heightmap resultatsTiledGPUOptimise(ppm_tiled_size, ppm_tiled_size);
