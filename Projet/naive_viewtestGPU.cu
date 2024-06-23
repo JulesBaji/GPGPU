@@ -1,6 +1,5 @@
 #include "naive_viewtestGPU.hpp"
 #define BLOCK_SIZE 16
-#define N 1024
 
 __global__ void kernelNaive_viewtest( const uint8_t *const dev_hmPtr, uint8_t *const dev_resultatsGPUPtr) 
 {
@@ -62,9 +61,7 @@ float naive_viewtestGPU(los::Heightmap &hm, const Point &c, los::Heightmap &resu
 	HANDLE_ERROR (cudaMemcpy( dev_resultatsGPUPtr, resultatsGPUPtr, resultatsGPU.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 
 	// les HANDLE_ERROR renvoient une erreur sur guacamole ??
-	HANDLE_ERROR(cudaMemcpyToSymbol(dev_size, &size, sizeof(int)));
 	HANDLE_ERROR(cudaMemcpyToSymbol(dev_width, &width, sizeof(int)));
-    HANDLE_ERROR(cudaMemcpyToSymbol(dev_height, &height, sizeof(int)));
     HANDLE_ERROR(cudaMemcpyToSymbol(dev_xc, &c.x, sizeof(int)));
     HANDLE_ERROR(cudaMemcpyToSymbol(dev_yc, &c.y, sizeof(int)));
 

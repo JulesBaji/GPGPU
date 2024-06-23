@@ -1,6 +1,5 @@
 #include "optimised_viewtestGPU2.hpp"
 #define BLOCK_SIZE 1
-#define N 1024
 
 __global__ void kernelOptimised_viewtest2( const uint8_t *const dev_hmPtr, uint8_t *const dev_resultatsGPUPtr) 
 {
@@ -12,7 +11,7 @@ __global__ void kernelOptimised_viewtest2( const uint8_t *const dev_hmPtr, uint8
 	// 0 0 1 1
 	int beta = val/2;
 
-	// faut pas dépasser la dim (dimMax peut être > dim) + on vesqui le dernier pixel
+	// faut pas dépasser la dimension (dimMax peut être > dim) + on esquive le dernier pixel
 	int iterateur_x = min(blockIdx.x/4, dev_width - 2);
 	int iterateur_y = min(blockIdx.x/4, dev_height - 2);
 
@@ -74,7 +73,6 @@ float optimised_viewtestGPU2(los::Heightmap &hm, const Point &c, los::Heightmap 
 	HANDLE_ERROR (cudaMemcpy( dev_hmPtr, hmPtr, hm.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 	HANDLE_ERROR (cudaMemcpy( dev_resultatsGPUPtr, resultatsGPUPtr, resultatsGPU.getSize() * sizeof(uint8_t), cudaMemcpyHostToDevice ));
 
-	HANDLE_ERROR(cudaMemcpyToSymbol(dev_size, &size, sizeof(int)));
 	HANDLE_ERROR(cudaMemcpyToSymbol(dev_width, &width, sizeof(int)));
     HANDLE_ERROR(cudaMemcpyToSymbol(dev_height, &height, sizeof(int)));
     HANDLE_ERROR(cudaMemcpyToSymbol(dev_xc, &c.x, sizeof(int)));
